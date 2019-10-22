@@ -378,43 +378,43 @@ print('\nConsentLimit Table',
 ### Import Additional Consent Information
 
 ### Import Location Info
-LocationCol = [
-        'B1_ALT_ID',
-        'AttributeValue'
-        ]
-LocationColNames = {
-         'B1_ALT_ID' : 'ConsentNo',
-         'AttributeValue' : 'CWMSZone' 
-        }
-LocationImportFilter = {
-       'B1_ALT_ID' : ConsentMaster,
-       'AttributeType' : ['CWMS Zone']
-        }
-LocationServer = 'SQL2012Prod03'
-LocationDatabase = 'DataWarehouse'
-LocationTable = 'F_ACC_SpatialAttributes2'
-
-Location = pdsql.mssql.rd_sql(
-                   server = LocationServer,
-                   database = LocationDatabase, 
-                   table = LocationTable,
-                   col_names = LocationCol,
-                   where_in = LocationImportFilter
-                   )
-# Format data
-Location = Location.drop_duplicates()
-Location.rename(columns=LocationColNames, inplace=True)
-Location['ConsentNo'] = Location['ConsentNo'] .str.strip().str.upper()
-
-# Aggregate Location table to consent level
-Location = Location.groupby('ConsentNo', as_index=False).agg({'CWMSZone': 'max'})
-Location.rename(columns = {'max':'CWMSZone'}, inplace=True)
-
-# Print overview of table
-print('\nLocation Table ',
-      Location.shape,'\n',
-      Location.nunique(), '\n\n')
-
+#LocationCol = [
+#        'B1_ALT_ID',
+#        'AttributeValue'
+#        ]
+#LocationColNames = {
+#         'B1_ALT_ID' : 'ConsentNo',
+#         'AttributeValue' : 'CWMSZone' 
+#        }
+#LocationImportFilter = {
+#       'B1_ALT_ID' : ConsentMaster,
+#       'AttributeType' : ['CWMS Zone']
+#        }
+#LocationServer = 'SQL2012Prod03'
+#LocationDatabase = 'DataWarehouse'
+#LocationTable = 'F_ACC_SpatialAttributes2'
+#
+#Location = pdsql.mssql.rd_sql(
+#                   server = LocationServer,
+#                   database = LocationDatabase, 
+#                   table = LocationTable,
+#                   col_names = LocationCol,
+#                   where_in = LocationImportFilter
+#                   )
+## Format data
+#Location = Location.drop_duplicates()
+#Location.rename(columns=LocationColNames, inplace=True)
+#Location['ConsentNo'] = Location['ConsentNo'] .str.strip().str.upper()
+#
+## Aggregate Location table to consent level
+#Location = Location.groupby('ConsentNo', as_index=False).agg({'CWMSZone': 'max'})
+#Location.rename(columns = {'max':'CWMSZone'}, inplace=True)
+#
+## Print overview of table
+#print('\nLocation Table ',
+#      Location.shape,'\n',
+#      Location.nunique(), '\n\n')
+#
 
 ### Import Full Effective Volume Info
 FEVCol = [
@@ -457,135 +457,135 @@ print('\nFEV Table ',
       FEV.nunique(), '\n\n')
 
 
-### Import Adaptive Managment Info
-AdaptiveManagementCol = [
-        'RecordNumber',
-        'AllocationBlock'
-        ]
-AdaptiveManagementColNames = {
-        'RecordNumber': 'ConsentNo',
-        'AllocationBlock' : 'AdMan'
-        }
-AdaptiveManagementImportFilter = {
-        'AllocationBlock' : ['Adapt.Vol']
-        }
-AdaptiveManagementServer = 'SQL2012Prod03'
-AdaptiveManagementDatabase = 'DataWarehouse'
-AdaptiveManagementTable = 'D_ACC_Act_Water_TakeWaterPermitVolume'
-
-AdaptiveManagement = pdsql.mssql.rd_sql(
-                   server = AdaptiveManagementServer,
-                   database = AdaptiveManagementDatabase, 
-                   table = AdaptiveManagementTable,
-                   col_names = AdaptiveManagementCol,
-                   where_in = AdaptiveManagementImportFilter
-                   )
-# Format data
-AdaptiveManagement = AdaptiveManagement.drop_duplicates()
-AdaptiveManagement.rename(columns=AdaptiveManagementColNames, inplace=True)
-AdaptiveManagement['ConsentNo'] = AdaptiveManagement['ConsentNo'].str.strip().str.upper()
-
-# Create list of consents in this financial year with Adaptive management 
-AdManMaster = list(set(AdaptiveManagement['ConsentNo'].values.tolist()))
-
-# Print overview of table
-print('AdManMaster ', len(AdManMaster),
-      '\n\nAdaptiveManagement Table ',
-      AdaptiveManagement.shape,'\n',
-      AdaptiveManagement.nunique(), '\n\n')
-
-##############################################################################
-### Create table of historical AdMan
-
-# Pull consent details on Adaptive Managment consents
-ConsentAMCol = [
-        'B1_ALT_ID',
-        'B1_APPL_STATUS',
-        'fmDate',
-        'toDate',
-        'HolderAddressFullName',
-        'HolderEcanID',
-        'MonOfficerDepartment',
-        'MonOfficer'
-        ]
-ConsentAMColNames = {
-        'B1_ALT_ID' : 'ConsentNo',
-        'MonOfficerDepartment' : 'MonDepartment'
-        }
-ConsentAMImportFilter = {
-       'B1_ALT_ID' : AdManMaster    
-        }
-ConsentAMServer = 'SQL2012Prod03'
-ConsentAMDatabase = 'DataWarehouse'
-ConsentAMTable = 'F_ACC_PERMIT'
-
-ConsentAM = pdsql.mssql.rd_sql(
-                   server = ConsentAMServer,
-                   database = ConsentAMDatabase, 
-                   table = ConsentAMTable,
-                   col_names = ConsentAMCol,
-                   where_in = ConsentAMImportFilter
-                   )
-# Format data
-ConsentAM.rename(columns=ConsentAMColNames, inplace=True)
-ConsentAM['ConsentNo'] = ConsentAM['ConsentNo'].str.strip().str.upper()
-
-# Link consent details to the AdMan consent
-AdaptiveManagementHistory = pd.merge(
-                                    AdaptiveManagement, 
-                                    ConsentAM, 
-                                    on = 'ConsentNo', 
-                                    how = 'left')
-
-# Pull location information on AdMan
-LocationAMCol = [
-        'B1_ALT_ID',
-        'AttributeValue'
-        ]
-LocationAMColNames = {
-         'B1_ALT_ID' : 'ConsentNo',
-         'AttributeValue' : 'CWMSZone' 
-        }
-LocationAMImportFilter = {
-       'B1_ALT_ID' : AdManMaster,
-       'AttributeType' : ['CWMS Zone']
-        }
-LocationAMServer = 'SQL2012Prod03'
-LocationAMDatabase = 'DataWarehouse'
-LocationAMTable = 'F_ACC_SpatialAttributes2'
-
-LocationAM = pdsql.mssql.rd_sql(
-                   server = LocationAMServer,
-                   database = LocationAMDatabase, 
-                   table = LocationAMTable,
-                   col_names = LocationAMCol,
-                   where_in = LocationAMImportFilter
-                   )
-# Format data
-LocationAM = LocationAM.drop_duplicates()
-LocationAM.rename(columns=LocationAMColNames, inplace=True)
-LocationAM['ConsentNo'] = LocationAM['ConsentNo'] .str.strip().str.upper()
-
-# Aggregate Location table to consent level
-LocationAM = LocationAM.groupby(
-                                'ConsentNo', as_index=False
-                                ).agg({'CWMSZone': 'max'})
-LocationAM.rename(columns = {'max':'CWMSZone'}, inplace=True)
-
-# Add location information to AdMan
-AdaptiveManagementHistory = pd.merge(
-                                    AdaptiveManagementHistory, 
-                                    LocationAM, 
-                                    on = 'ConsentNo', 
-                                    how = 'left')
-
-# Export CSV for RMO to monitor AdMan
-AdaptiveManagementHistory.to_csv('AdaptiveManagementHistory.csv')
-
-# Print overview of table
-print('\n\nAdaptiveManagementHistory Table ',
-      AdaptiveManagementHistory.shape,'\n',
-      AdaptiveManagementHistory.nunique(), '\n\n')
+#### Import Adaptive Managment Info
+#AdaptiveManagementCol = [
+#        'RecordNumber',
+#        'AllocationBlock'
+#        ]
+#AdaptiveManagementColNames = {
+#        'RecordNumber': 'ConsentNo',
+#        'AllocationBlock' : 'AdMan'
+#        }
+#AdaptiveManagementImportFilter = {
+#        'AllocationBlock' : ['Adapt.Vol']
+#        }
+#AdaptiveManagementServer = 'SQL2012Prod03'
+#AdaptiveManagementDatabase = 'DataWarehouse'
+#AdaptiveManagementTable = 'D_ACC_Act_Water_TakeWaterPermitVolume'
+#
+#AdaptiveManagement = pdsql.mssql.rd_sql(
+#                   server = AdaptiveManagementServer,
+#                   database = AdaptiveManagementDatabase, 
+#                   table = AdaptiveManagementTable,
+#                   col_names = AdaptiveManagementCol,
+#                   where_in = AdaptiveManagementImportFilter
+#                   )
+## Format data
+#AdaptiveManagement = AdaptiveManagement.drop_duplicates()
+#AdaptiveManagement.rename(columns=AdaptiveManagementColNames, inplace=True)
+#AdaptiveManagement['ConsentNo'] = AdaptiveManagement['ConsentNo'].str.strip().str.upper()
+#
+## Create list of consents in this financial year with Adaptive management 
+#AdManMaster = list(set(AdaptiveManagement['ConsentNo'].values.tolist()))
+#
+## Print overview of table
+#print('AdManMaster ', len(AdManMaster),
+#      '\n\nAdaptiveManagement Table ',
+#      AdaptiveManagement.shape,'\n',
+#      AdaptiveManagement.nunique(), '\n\n')
+#
+###############################################################################
+#### Create table of historical AdMan
+#
+## Pull consent details on Adaptive Managment consents
+#ConsentAMCol = [
+#        'B1_ALT_ID',
+#        'B1_APPL_STATUS',
+#        'fmDate',
+#        'toDate',
+#        'HolderAddressFullName',
+#        'HolderEcanID',
+#        'MonOfficerDepartment',
+#        'MonOfficer'
+#        ]
+#ConsentAMColNames = {
+#        'B1_ALT_ID' : 'ConsentNo',
+#        'MonOfficerDepartment' : 'MonDepartment'
+#        }
+#ConsentAMImportFilter = {
+#       'B1_ALT_ID' : AdManMaster    
+#        }
+#ConsentAMServer = 'SQL2012Prod03'
+#ConsentAMDatabase = 'DataWarehouse'
+#ConsentAMTable = 'F_ACC_PERMIT'
+#
+#ConsentAM = pdsql.mssql.rd_sql(
+#                   server = ConsentAMServer,
+#                   database = ConsentAMDatabase, 
+#                   table = ConsentAMTable,
+#                   col_names = ConsentAMCol,
+#                   where_in = ConsentAMImportFilter
+#                   )
+## Format data
+#ConsentAM.rename(columns=ConsentAMColNames, inplace=True)
+#ConsentAM['ConsentNo'] = ConsentAM['ConsentNo'].str.strip().str.upper()
+#
+## Link consent details to the AdMan consent
+#AdaptiveManagementHistory = pd.merge(
+#                                    AdaptiveManagement, 
+#                                    ConsentAM, 
+#                                    on = 'ConsentNo', 
+#                                    how = 'left')
+#
+## Pull location information on AdMan
+#LocationAMCol = [
+#        'B1_ALT_ID',
+#        'AttributeValue'
+#        ]
+#LocationAMColNames = {
+#         'B1_ALT_ID' : 'ConsentNo',
+#         'AttributeValue' : 'CWMSZone' 
+#        }
+#LocationAMImportFilter = {
+#       'B1_ALT_ID' : AdManMaster,
+#       'AttributeType' : ['CWMS Zone']
+#        }
+#LocationAMServer = 'SQL2012Prod03'
+#LocationAMDatabase = 'DataWarehouse'
+#LocationAMTable = 'F_ACC_SpatialAttributes2'
+#
+#LocationAM = pdsql.mssql.rd_sql(
+#                   server = LocationAMServer,
+#                   database = LocationAMDatabase, 
+#                   table = LocationAMTable,
+#                   col_names = LocationAMCol,
+#                   where_in = LocationAMImportFilter
+#                   )
+## Format data
+#LocationAM = LocationAM.drop_duplicates()
+#LocationAM.rename(columns=LocationAMColNames, inplace=True)
+#LocationAM['ConsentNo'] = LocationAM['ConsentNo'] .str.strip().str.upper()
+#
+## Aggregate Location table to consent level
+#LocationAM = LocationAM.groupby(
+#                                'ConsentNo', as_index=False
+#                                ).agg({'CWMSZone': 'max'})
+#LocationAM.rename(columns = {'max':'CWMSZone'}, inplace=True)
+#
+## Add location information to AdMan
+#AdaptiveManagementHistory = pd.merge(
+#                                    AdaptiveManagementHistory, 
+#                                    LocationAM, 
+#                                    on = 'ConsentNo', 
+#                                    how = 'left')
+#
+## Export CSV for RMO to monitor AdMan
+#AdaptiveManagementHistory.to_csv('AdaptiveManagementHistory.csv')
+#
+## Print overview of table
+#print('\n\nAdaptiveManagementHistory Table ',
+#      AdaptiveManagementHistory.shape,'\n',
+#      AdaptiveManagementHistory.nunique(), '\n\n')
 
 ###############################################################################
 #### Create Water User Groups (SMG) Info
@@ -1039,140 +1039,140 @@ print('\nMeter Table ',
       Meter.nunique(), '\n\n')
 
 
-### Import DataLogger Info
-DataLoggerCol = [
-        'ID',
-        'LoggerID',
-        'Well_no',
-        'DateDeinstalled',
-        'DateInstalled',
-        ]
-DataLoggerColNames = {
-        'Well_no' : 'WAP'
-        }
-DataLoggerImportFilter = {
-        'Well_No' : WAPMaster
-        }
-DataLoggerServer = 'sql2012prod05'
-DataLoggerDatabase = 'wells'
-DataLoggerTable = 'EPO_Dataloggers'
-
-DataLogger = pdsql.mssql.rd_sql(
-                   server = DataLoggerServer,
-                   database = DataLoggerDatabase, 
-                   table = DataLoggerTable,
-                   col_names = DataLoggerCol,
-                   where_in = DataLoggerImportFilter
-                   )
-# Format data
-DataLogger.rename(columns=DataLoggerColNames, inplace=True)
-DataLogger['WAP'] = DataLogger['WAP'] .str.strip().str.upper()
-
-# Remove assumed dataloggers
-DataLogger = DataLogger[DataLogger.LoggerID > 1]
-
-# Remove uninstalled dataloggers
-DataLogger = DataLogger[DataLogger['DateDeinstalled'].isnull()]
-
-# Create counter for dataloggers
-DataLogger['DataLoggersInstalled'] = 1
-
-# Aggrigate to WAP level for total dataloggers per WAP
-DataLogger = DataLogger.groupby(['WAP'],as_index=False
-                                ).agg({'DataLoggersInstalled' : 'count'})
-
-# Print overview of table
-print('\nDataLogger Table',
-      DataLogger.shape,'\n',
-      DataLogger.nunique(), '\n\n')
+#### Import DataLogger Info
+#DataLoggerCol = [
+#        'ID',
+#        'LoggerID',
+#        'Well_no',
+#        'DateDeinstalled',
+#        'DateInstalled',
+#        ]
+#DataLoggerColNames = {
+#        'Well_no' : 'WAP'
+#        }
+#DataLoggerImportFilter = {
+#        'Well_No' : WAPMaster
+#        }
+#DataLoggerServer = 'sql2012prod05'
+#DataLoggerDatabase = 'wells'
+#DataLoggerTable = 'EPO_Dataloggers'
+#
+#DataLogger = pdsql.mssql.rd_sql(
+#                   server = DataLoggerServer,
+#                   database = DataLoggerDatabase, 
+#                   table = DataLoggerTable,
+#                   col_names = DataLoggerCol,
+#                   where_in = DataLoggerImportFilter
+#                   )
+## Format data
+#DataLogger.rename(columns=DataLoggerColNames, inplace=True)
+#DataLogger['WAP'] = DataLogger['WAP'] .str.strip().str.upper()
+#
+## Remove assumed dataloggers
+#DataLogger = DataLogger[DataLogger.LoggerID > 1]
+#
+## Remove uninstalled dataloggers
+#DataLogger = DataLogger[DataLogger['DateDeinstalled'].isnull()]
+#
+## Create counter for dataloggers
+#DataLogger['DataLoggersInstalled'] = 1
+#
+## Aggrigate to WAP level for total dataloggers per WAP
+#DataLogger = DataLogger.groupby(['WAP'],as_index=False
+#                                ).agg({'DataLoggersInstalled' : 'count'})
+#
+## Print overview of table
+#print('\nDataLogger Table',
+#      DataLogger.shape,'\n',
+#      DataLogger.nunique(), '\n\n')
 
 
 ##############################################################################
 ### Import Inspection History Info
 ##############################################################################
+#
+## Import Inspections
+#InspectionCol = [
+#        'InspectionID',
+#        'B1_ALT_ID',
+#        'Subtype',
+#        'InspectionStatus',
+#        'NextInspectionDate',
+#        'InspectionCompleteDate', #not used previous year
+#        'GA_USERID',  #not used previous year
+#        'ResultComment',
+#        'G6_ACT_TYP'
+#        ]
+#InspectionColNames = {
+#        'B1_ALT_ID' : 'ConsentNo',
+#        'Subtype' : 'InspectionSubtype',
+#        'GA_USERID' : 'OfficerID',
+#        'G6_ACT_TYP' : 'RecordType'
+#        }
+#InspectionImportFilter = {
+#        'B1_ALT_ID' : ConsentMaster,
+#        }
+#Inspection_date_col = 'InspectionCompleteDate' 
+#Inspection_from_date = InspectionStartDate
+#Inspection_to_date = InspectionEndDate
+#InspectionServer = 'SQL2012Prod03'
+#InspectionDatabase = 'DataWarehouse'
+#InspectionTable = 'D_ACC_Inspections'
+#
+#Inspection = pdsql.mssql.rd_sql(
+#                   server = InspectionServer,
+#                   database = InspectionDatabase, 
+#                   table = InspectionTable,
+#                   col_names = InspectionCol,
+#                   where_in = InspectionImportFilter,
+#                   date_col = Inspection_date_col,
+#                   from_date = Inspection_from_date
+#                   )
+## Format data
+#Inspection.rename(columns=InspectionColNames, inplace=True)
+#Inspection['ConsentNo'] = Inspection['ConsentNo'] .str.strip().str.upper()
+#
+## Reduce list to only Inspection type records
+#Inspection = Inspection[Inspection['RecordType'].str.contains('Inspection')]
+#
+## Create counter for inspections
+#Inspection['Inspection'] = 1
 
-# Import Inspections
-InspectionCol = [
-        'InspectionID',
-        'B1_ALT_ID',
-        'Subtype',
-        'InspectionStatus',
-        'NextInspectionDate',
-        'InspectionCompleteDate', #not used previous year
-        'GA_USERID',  #not used previous year
-        'ResultComment',
-        'G6_ACT_TYP'
-        ]
-InspectionColNames = {
-        'B1_ALT_ID' : 'ConsentNo',
-        'Subtype' : 'InspectionSubtype',
-        'GA_USERID' : 'OfficerID',
-        'G6_ACT_TYP' : 'RecordType'
-        }
-InspectionImportFilter = {
-        'B1_ALT_ID' : ConsentMaster,
-        }
-Inspection_date_col = 'InspectionCompleteDate' 
-Inspection_from_date = InspectionStartDate
-Inspection_to_date = InspectionEndDate
-InspectionServer = 'SQL2012Prod03'
-InspectionDatabase = 'DataWarehouse'
-InspectionTable = 'D_ACC_Inspections'
-
-Inspection = pdsql.mssql.rd_sql(
-                   server = InspectionServer,
-                   database = InspectionDatabase, 
-                   table = InspectionTable,
-                   col_names = InspectionCol,
-                   where_in = InspectionImportFilter,
-                   date_col = Inspection_date_col,
-                   from_date = Inspection_from_date
-                   )
-# Format data
-Inspection.rename(columns=InspectionColNames, inplace=True)
-Inspection['ConsentNo'] = Inspection['ConsentNo'] .str.strip().str.upper()
-
-# Reduce list to only Inspection type records
-Inspection = Inspection[Inspection['RecordType'].str.contains('Inspection')]
-
-# Create counter for inspections
-Inspection['Inspection'] = 1
-
-# Calculate inspections with Non-compliance grade
-Inspection['NonCompliance'] = np.where(
-        Inspection['InspectionStatus'].str.contains('on-comp'),1, np.nan)
-
-# Calculate date of inspections with non-compliance grade
-Inspection['NonComplianceDate'] = np.where(
-        Inspection['InspectionStatus'].str.contains('on-comp'),
-        Inspection['InspectionCompleteDate'], pd.NaT)
-Inspection['NonComplianceDate'] = pd.to_datetime(
-        Inspection['NonComplianceDate'], errors = 'coerce')
-
-# Aggrigate to consent level to find latest inspection statistics
-NonCompliance = Inspection.groupby(
-  ['ConsentNo'], as_index=False
-  ).agg(
-          {
-          'Inspection' : 'count',
-          'InspectionCompleteDate' : 'max',
-          'NonCompliance' : 'sum',
-          'NonComplianceDate' : 'max',
-          }
-        )
-NonCompliance.rename(columns = 
-         {
-          'Inspection' : 'TotalInspections',
-          'InspectionCompleteDate' :'LatestInspection',
-          'NonCompliance' :'CountNonCompliance',
-          'NonComplianceDate' : 'LatestNonComplianceDate',
-                 },inplace=True)
-
-# Print overview of table
-print('\nNonCompliance Table ',
-      NonCompliance.shape,'\n',
-      NonCompliance.nunique(), '\n\n')
-
+## Calculate inspections with Non-compliance grade
+#Inspection['NonCompliance'] = np.where(
+#        Inspection['InspectionStatus'].str.contains('on-comp'),1, np.nan)
+#
+## Calculate date of inspections with non-compliance grade
+#Inspection['NonComplianceDate'] = np.where(
+#        Inspection['InspectionStatus'].str.contains('on-comp'),
+#        Inspection['InspectionCompleteDate'], pd.NaT)
+#Inspection['NonComplianceDate'] = pd.to_datetime(
+#        Inspection['NonComplianceDate'], errors = 'coerce')
+#
+## Aggrigate to consent level to find latest inspection statistics
+#NonCompliance = Inspection.groupby(
+#  ['ConsentNo'], as_index=False
+#  ).agg(
+#          {
+#          'Inspection' : 'count',
+#          'InspectionCompleteDate' : 'max',
+#          'NonCompliance' : 'sum',
+#          'NonComplianceDate' : 'max',
+#          }
+#        )
+#NonCompliance.rename(columns = 
+#         {
+#          'Inspection' : 'TotalInspections',
+#          'InspectionCompleteDate' :'LatestInspection',
+#          'NonCompliance' :'CountNonCompliance',
+#          'NonComplianceDate' : 'LatestNonComplianceDate',
+#                 },inplace=True)
+#
+## Print overview of table
+#print('\nNonCompliance Table ',
+#      NonCompliance.shape,'\n',
+#      NonCompliance.nunique(), '\n\n')
+#
 
 ##############################################################################
 ### Import information from teams not stored in datawarehouse
@@ -1203,154 +1203,154 @@ print('\nNonCompliance Table ',
 ### Import Summary Table
 ##############################################################################
 
-### Import Consent Summary Table
-ConsentSummaryCol = [
-        'SummaryConsentID',
-        'Consent',
-        'Activity',
-        'ErrorMsg',
-#        'MaxAnnualVolume', #not used previous years
-#        'MaxConsecutiveDayVolume', #not used previous years
-#        'NumberOfConsecutiveDays', #not used previous years
-        'MaxTakeRate', #not used previous years
-#        'HasFlowRestrictions', #unreliable. not used previous years
-#        'ComplexAllocation', #not used previous years
-#        'TotalVolumeAboveRestriction', #unreliable
-#        'TotalDaysAboveRestriction',#unreliable
-#        'TotalVolumeAboveNDayVolume', #unreliable. not used previous years
-        'TotalDaysAboveNDayVolume', # added for second run
-#        'MaxVolumeAboveNDayVolume', #unreliable. not used previous years
-#        'MedianVolumeAboveNDayVolume', #unreliable. not used previous years
-        'PercentAnnualVolumeTaken',
-        'TotalTimeAboveRate', # not used previous years
-        'MaxRateTaken', 
-        'MedianRateTakenAboveMaxRate' #not available in previous year
-        ]
-ConsentSummaryColNames = {
-        'SummaryConsentID' : 'CS_ID',
-        'Consent' : 'ConsentNo',
-        'ErrorMsg' : 'CS_ErrorMSG',
-        'MaxTakeRate' : 'ConsentRate',
-        'TotalDaysAboveNDayVolume' : 'CS_DaysAboveNday',
-        'PercentAnnualVolumeTaken': 'CS_PercentAnnualVolume',
-        'TotalTimeAboveRate' : 'CS_TimeAboveRate',
-        'MaxRateTaken' : 'CS_MaxRate',
-        'MedianRateTakenAboveMaxRate' : 'CS_MedianRateAbove'
-        }
-ConsentSummaryImportFilter = {
-       'RunDate' : SummaryTableRunDate
-        }
-
-ConsentSummary_date_col = 'RunDate'
-ConsentSummary_from_date = SummaryTableRunDate
-ConsentSummary_to_date = SummaryTableRunDate
-ConsentSummaryServer = 'SQL2012Prod03'
-ConsentSummaryDatabase =  'Hilltop'
-ConsentSummaryTable = 'ComplianceSummaryConsent' #change after run is finished
-
-ConsentSummary = pdsql.mssql.rd_sql(
-                   server = ConsentSummaryServer,
-                   database = ConsentSummaryDatabase, 
-                   table = ConsentSummaryTable,
-                   col_names = ConsentSummaryCol,
-                   date_col = ConsentSummary_date_col,
-                   from_date= ConsentSummary_from_date,
-                   to_date = ConsentSummary_to_date
-                   )
-
-# Format data
-ConsentSummary.rename(columns=ConsentSummaryColNames, inplace=True)
-ConsentSummary['ConsentNo'] = ConsentSummary['ConsentNo'] .str.strip().str.upper()
-ConsentSummary['Activity'] = ConsentSummary['Activity'] .str.strip().str.lower()
-
-# Calculate usage statistics
-ConsentSummary['CS_PercentMaxRate'] = (
-        ConsentSummary['CS_MaxRate']/ConsentSummary['ConsentRate'])*100 
-ConsentSummary['CS_PercentMedRate'] = (
-        ConsentSummary['CS_MedianRateAbove']/ConsentSummary['ConsentRate'])*100
-
-# Print overview of table
-print('\nConsentSummary Table ',
-      ConsentSummary.shape,'\n',
-      ConsentSummary.nunique(), '\n\n')
-
-# SummaryConsent = SummaryConsent[SummaryConsent['RunDate'] == SummaryTableRunDate]
-
-### Import WAP Summary Table
-WAPSummaryCol = [
-        'SummaryWAPID',
-        'Consent',
-        'Activity',
-        'WAP',
-        'MeterName',
-        'ErrorMsg',
-#        'MaxAnnualVolume', #not used previous years
-#        'MaxConsecutiveDayVolume', #not used previous years
-#        'NumberOfConsecutiveDays', #not used previous years
-        'MaxTakeRate', #not used previous years
-        'FromMonth',#not used previous years
-        'ToMonth',#not used previous years
-#        'TotalVolumeAboveRestriction', #unreliable
-#        'TotalDaysAboveRestriction',#unreliable
-#        'TotalVolumeAboveNDayVolume', #unreliable. not used previous years
-        'TotalDaysAboveNDayVolume', # added for second run
-#        'MaxVolumeAboveNDayVolume', #unreliable. not used previous years
-#        'MedianVolumeTakenAboveMaxVolume', #unreliable. not used previous years
-        'TotalTimeAboveRate', #not used previous years
-        'MaxRateTaken',# Now unreliable. not used previous years
-        'MedianRateTakenAboveMaxRate', #not available in previous year
-        'TotalMissingRecord'#unreliable.
-        ]
-WAPSummaryColNames = {
-        'SummaryWAPID' : 'WS_ID',
-        'Consent' : 'ConsentNo',
-        'MaxTakeRate' : 'WAPRate',
-        'FromMonth' : 'WAPFromMonth',
-        'ToMonth' : 'WAPToMonth',
-        'MeterName' : 'WS_MeterName',
-        'ErrorMsg' : 'WS_ErrorMsg',
-        'TotalDaysAboveNDayVolume' : 'WS_DaysAboveNday',
-        'TotalTimeAboveRate' : 'WS_TimeAboveRate',
-        'MaxRateTaken' : 'WS_MaxRate',
-        'MedianRateTakenAboveMaxRate' : 'WS_MedianRateAbove'
-        }
-WAPSummaryImportFilter = {
-       'RunDate' : SummaryTableRunDate
-        }
-
-WAPSummary_date_col = 'RunDate'
-WAPSummary_from_date = SummaryTableRunDate
-WAPSummary_to_date = SummaryTableRunDate
-WAPSummaryServer = 'SQL2012Prod03'
-WAPSummaryDatabase =  'Hilltop'
-WAPSummaryTable = 'ComplianceSummaryWAP' #change after run is finished
-
-WAPSummary = pdsql.mssql.rd_sql(
-                   server = WAPSummaryServer,
-                   database = WAPSummaryDatabase, 
-                   table = WAPSummaryTable,
-                   col_names = WAPSummaryCol,
-                   date_col = WAPSummary_date_col,
-                   from_date= WAPSummary_from_date,
-                   to_date = WAPSummary_to_date
-                   )
-# Format data
-WAPSummary.rename(columns=WAPSummaryColNames, inplace=True)
-WAPSummary['ConsentNo'] = WAPSummary['ConsentNo'] .str.strip().str.upper()
-WAPSummary['Activity'] = WAPSummary['Activity'] .str.strip().str.lower()
-WAPSummary['WAP'] = WAPSummary['WAP'] .str.strip().str.upper()
-
-# Calculate usage stattistics
-WAPSummary['WS_PercentMaxRoT'] = (
-        WAPSummary['WS_MaxRate']/WAPSummary['WAPRate'])*100
-WAPSummary['WS_PercentMedRate'] = (
-        WAPSummary['WS_MedianRateAbove']/WAPSummary.WAPRate)*100   
-        
-# Print overview of table
-print('\nWAPSummary Table ',
-      WAPSummary.shape,'\n',
-      WAPSummary.nunique(), '\n\n')
-                                             
+#### Import Consent Summary Table
+#ConsentSummaryCol = [
+#        'SummaryConsentID',
+#        'Consent',
+#        'Activity',
+#        'ErrorMsg',
+##        'MaxAnnualVolume', #not used previous years
+##        'MaxConsecutiveDayVolume', #not used previous years
+##        'NumberOfConsecutiveDays', #not used previous years
+#        'MaxTakeRate', #not used previous years
+##        'HasFlowRestrictions', #unreliable. not used previous years
+##        'ComplexAllocation', #not used previous years
+##        'TotalVolumeAboveRestriction', #unreliable
+##        'TotalDaysAboveRestriction',#unreliable
+##        'TotalVolumeAboveNDayVolume', #unreliable. not used previous years
+#        'TotalDaysAboveNDayVolume', # added for second run
+##        'MaxVolumeAboveNDayVolume', #unreliable. not used previous years
+##        'MedianVolumeAboveNDayVolume', #unreliable. not used previous years
+#        'PercentAnnualVolumeTaken',
+#        'TotalTimeAboveRate', # not used previous years
+#        'MaxRateTaken', 
+#        'MedianRateTakenAboveMaxRate' #not available in previous year
+#        ]
+#ConsentSummaryColNames = {
+#        'SummaryConsentID' : 'CS_ID',
+#        'Consent' : 'ConsentNo',
+#        'ErrorMsg' : 'CS_ErrorMSG',
+#        'MaxTakeRate' : 'ConsentRate',
+#        'TotalDaysAboveNDayVolume' : 'CS_DaysAboveNday',
+#        'PercentAnnualVolumeTaken': 'CS_PercentAnnualVolume',
+#        'TotalTimeAboveRate' : 'CS_TimeAboveRate',
+#        'MaxRateTaken' : 'CS_MaxRate',
+#        'MedianRateTakenAboveMaxRate' : 'CS_MedianRateAbove'
+#        }
+#ConsentSummaryImportFilter = {
+#       'RunDate' : SummaryTableRunDate
+#        }
+#
+#ConsentSummary_date_col = 'RunDate'
+#ConsentSummary_from_date = SummaryTableRunDate
+#ConsentSummary_to_date = SummaryTableRunDate
+#ConsentSummaryServer = 'SQL2012Prod03'
+#ConsentSummaryDatabase =  'Hilltop'
+#ConsentSummaryTable = 'ComplianceSummaryConsent' #change after run is finished
+#
+#ConsentSummary = pdsql.mssql.rd_sql(
+#                   server = ConsentSummaryServer,
+#                   database = ConsentSummaryDatabase, 
+#                   table = ConsentSummaryTable,
+#                   col_names = ConsentSummaryCol,
+#                   date_col = ConsentSummary_date_col,
+#                   from_date= ConsentSummary_from_date,
+#                   to_date = ConsentSummary_to_date
+#                   )
+#
+## Format data
+#ConsentSummary.rename(columns=ConsentSummaryColNames, inplace=True)
+#ConsentSummary['ConsentNo'] = ConsentSummary['ConsentNo'] .str.strip().str.upper()
+#ConsentSummary['Activity'] = ConsentSummary['Activity'] .str.strip().str.lower()
+#
+## Calculate usage statistics
+#ConsentSummary['CS_PercentMaxRate'] = (
+#        ConsentSummary['CS_MaxRate']/ConsentSummary['ConsentRate'])*100 
+#ConsentSummary['CS_PercentMedRate'] = (
+#        ConsentSummary['CS_MedianRateAbove']/ConsentSummary['ConsentRate'])*100
+#
+## Print overview of table
+#print('\nConsentSummary Table ',
+#      ConsentSummary.shape,'\n',
+#      ConsentSummary.nunique(), '\n\n')
+#
+## SummaryConsent = SummaryConsent[SummaryConsent['RunDate'] == SummaryTableRunDate]
+#
+#### Import WAP Summary Table
+#WAPSummaryCol = [
+#        'SummaryWAPID',
+#        'Consent',
+#        'Activity',
+#        'WAP',
+#        'MeterName',
+#        'ErrorMsg',
+##        'MaxAnnualVolume', #not used previous years
+##        'MaxConsecutiveDayVolume', #not used previous years
+##        'NumberOfConsecutiveDays', #not used previous years
+#        'MaxTakeRate', #not used previous years
+#        'FromMonth',#not used previous years
+#        'ToMonth',#not used previous years
+##        'TotalVolumeAboveRestriction', #unreliable
+##        'TotalDaysAboveRestriction',#unreliable
+##        'TotalVolumeAboveNDayVolume', #unreliable. not used previous years
+#        'TotalDaysAboveNDayVolume', # added for second run
+##        'MaxVolumeAboveNDayVolume', #unreliable. not used previous years
+##        'MedianVolumeTakenAboveMaxVolume', #unreliable. not used previous years
+#        'TotalTimeAboveRate', #not used previous years
+#        'MaxRateTaken',# Now unreliable. not used previous years
+#        'MedianRateTakenAboveMaxRate', #not available in previous year
+#        'TotalMissingRecord'#unreliable.
+#        ]
+#WAPSummaryColNames = {
+#        'SummaryWAPID' : 'WS_ID',
+#        'Consent' : 'ConsentNo',
+#        'MaxTakeRate' : 'WAPRate',
+#        'FromMonth' : 'WAPFromMonth',
+#        'ToMonth' : 'WAPToMonth',
+#        'MeterName' : 'WS_MeterName',
+#        'ErrorMsg' : 'WS_ErrorMsg',
+#        'TotalDaysAboveNDayVolume' : 'WS_DaysAboveNday',
+#        'TotalTimeAboveRate' : 'WS_TimeAboveRate',
+#        'MaxRateTaken' : 'WS_MaxRate',
+#        'MedianRateTakenAboveMaxRate' : 'WS_MedianRateAbove'
+#        }
+#WAPSummaryImportFilter = {
+#       'RunDate' : SummaryTableRunDate
+#        }
+#
+#WAPSummary_date_col = 'RunDate'
+#WAPSummary_from_date = SummaryTableRunDate
+#WAPSummary_to_date = SummaryTableRunDate
+#WAPSummaryServer = 'SQL2012Prod03'
+#WAPSummaryDatabase =  'Hilltop'
+#WAPSummaryTable = 'ComplianceSummaryWAP' #change after run is finished
+#
+#WAPSummary = pdsql.mssql.rd_sql(
+#                   server = WAPSummaryServer,
+#                   database = WAPSummaryDatabase, 
+#                   table = WAPSummaryTable,
+#                   col_names = WAPSummaryCol,
+#                   date_col = WAPSummary_date_col,
+#                   from_date= WAPSummary_from_date,
+#                   to_date = WAPSummary_to_date
+#                   )
+## Format data
+#WAPSummary.rename(columns=WAPSummaryColNames, inplace=True)
+#WAPSummary['ConsentNo'] = WAPSummary['ConsentNo'] .str.strip().str.upper()
+#WAPSummary['Activity'] = WAPSummary['Activity'] .str.strip().str.lower()
+#WAPSummary['WAP'] = WAPSummary['WAP'] .str.strip().str.upper()
+#
+## Calculate usage stattistics
+#WAPSummary['WS_PercentMaxRoT'] = (
+#        WAPSummary['WS_MaxRate']/WAPSummary['WAPRate'])*100
+#WAPSummary['WS_PercentMedRate'] = (
+#        WAPSummary['WS_MedianRateAbove']/WAPSummary.WAPRate)*100   
+#        
+## Print overview of table
+#print('\nWAPSummary Table ',
+#      WAPSummary.shape,'\n',
+#      WAPSummary.nunique(), '\n\n')
+#                                             
 
 
 ##############################################################################
@@ -1363,10 +1363,10 @@ AllLimit = pd.merge(AllLimit, FEV, on = ['ConsentNo','Activity'], how = 'left')
 
 ### Build Consent level information
 Consent = pd.merge(ConsentBase, ConsentDetails, on = 'ConsentNo', how = 'left')
-Consent = pd.merge(Consent, Location, on = 'ConsentNo', how = 'left')
-Consent = pd.merge(Consent, AdaptiveManagement, on = 'ConsentNo', how = 'left')
+#Consent = pd.merge(Consent, Location, on = 'ConsentNo', how = 'left')
+#Consent = pd.merge(Consent, AdaptiveManagement, on = 'ConsentNo', how = 'left')
 #Consent = pd.merge(Consent, WUG, on = 'ConsentNo', how = 'left')
-Consent = pd.merge(Consent, NonCompliance, on = 'ConsentNo' , how = 'left' )
+#Consent = pd.merge(Consent, NonCompliance, on = 'ConsentNo' , how = 'left' )
 Consent = pd.merge(Consent, SharedConsent, on = 'ConsentNo' , how = 'left' )
 #Consent = pd.merge(Consent, CampaignConsent, on = 'ConsentNo' , how = 'left' )
 #Consent = pd.merge(Consent, MidseasonInspections, on = 'ConsentNo' , how = 'left' )
@@ -1375,30 +1375,30 @@ Consent = pd.merge(Consent, SharedConsent, on = 'ConsentNo' , how = 'left' )
 WAP = pd.merge(WAPBase, WellDetails, on = 'WAP', how = 'left')
 WAP = pd.merge(WAP, SharedWAP, on = 'WAP', how = 'left')
 WAP = pd.merge(WAP, Meter, on = 'WAP', how = 'left')
-WAP = pd.merge(WAP, DataLogger, on = 'WAP', how = 'left')
+#WAP = pd.merge(WAP, DataLogger, on = 'WAP', how = 'left')
 WAP = pd.merge(WAP, Verification, on = 'WAP', how = 'left')
 WAP = pd.merge(WAP, Waiver, on = 'WAP', how = 'left')
 WAP = pd.merge(WAP, Telemetry, on = 'WAP', how = 'left')
-WAP = pd.merge(WAP, CampaignWAP, on = 'WAP', how = 'left')
+#WAP = pd.merge(WAP, CampaignWAP, on = 'WAP', how = 'left')
 
 ### Merge 3 levels
 Baseline = pd.merge(WAP, AllLimit, on = 'WAP', how = 'right')
 Baseline = pd.merge(Consent, Baseline, on = 'ConsentNo', how = 'right')
 
 ### Add summary table information
-Baseline = pd.merge(Baseline, ConsentSummary, 
-        on = ['ConsentNo','Activity','ConsentRate',], 
-        how = 'left')
-Baseline = pd.merge(Baseline, WAPSummary, 
-        on = ['ConsentNo','WAP','Activity','WAPFromMonth','WAPToMonth','WAPRate'], 
-        how = 'left')
+#Baseline = pd.merge(Baseline, ConsentSummary, 
+#        on = ['ConsentNo','Activity','ConsentRate',], 
+#        how = 'left')
+#Baseline = pd.merge(Baseline, WAPSummary, 
+#        on = ['ConsentNo','WAP','Activity','WAPFromMonth','WAPToMonth','WAPRate'], 
+#        how = 'left')
 
 # Export Baseline
-Baseline.to_csv('Baseline' + RunDate + '.csv')
-
-Baseline.to_csv(
-        r"\\fs02\\ManagedShares\\Data\\Implementation Support\\Python Scripts\\scripts\\Import\\"+
-        'Baseline' + RunDate + '.csv')
+#Baseline.to_csv('Baseline' + RunDate + '.csv')
+#
+#Baseline.to_csv(
+#        r"\\fs02\\ManagedShares\\Data\\Implementation Support\\"+
+#        'Baseline' + RunDate + '.csv')
 
 # Print overview of table
 print('\nBaseline Table ',
