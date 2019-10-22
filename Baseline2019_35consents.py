@@ -30,14 +30,13 @@ RunDate = str(date.today())
 
 TermDate = '2018-10-01'
 TermDate = datetime.strptime(TermDate, '%Y-%m-%d')
-IssuedDate = '2019-07-01'
 TelemetryFromDate = '2018-07-01'# previous model Jan-1
 TelemetryToDate = '2019-06-30' #non existant in previous model
 InspectionStartDate = '2016-07-01' #'2018-07-13'
 InspectionEndDate = '2019-07-01' #'2019-11-01'
 SummaryTableRunDate = '2019-09-20'
-VerificationLimit = '2014-07-01'
-WaiverLimit = '2018-07-01'
+VerificationLimit = '2014-10-22'
+WaiverLimit = '2000-07-01'
 
 
 ##############################################################################
@@ -102,16 +101,9 @@ ConsentDetailsImportFilter = {
                           'CRC169502',
                           'CRC012006'],
            
-'B1_PER_SUB_TYPE' : ['Water Permit (s14)'] ,
-
-'B1_APPL_STATUS' : ['Terminated - Replaced',
-                           'Issued - Active',
-                           'Issued - s124 Continuance',
-                          'Issued - Inactive' ] }
+'B1_PER_SUB_TYPE' : ['Water Permit (s14)']}
 
 ConsentDetailswhere_op = 'AND'
-ConsentDetailsDate_col = 'toDate'
-ConsentDetailsfrom_date = '2018-10-1' #dates are inclusive in PY - exclusive in SQL
 ConsentDetailsServer = 'SQL2012Prod03'
 ConsentDetailsDatabase = 'DataWarehouse'
 ConsentDetailsTable = 'F_ACC_PERMIT'
@@ -122,22 +114,18 @@ ConsentDetails = pdsql.mssql.rd_sql(
                    table = ConsentDetailsTable,
                    col_names = ConsentDetailsCol,
                    where_op = ConsentDetailswhere_op,
-                   where_in =ConsentDetailsImportFilter,
-                   date_col = ConsentDetailsDate_col,
-                   from_date = ConsentDetailsfrom_date
-                   )
+                   where_in =ConsentDetailsImportFilter,)
 
 # Format data
 ConsentDetails.rename(columns=ConsentDetailsColNames, inplace=True)
 ConsentDetails['ConsentNo'] = ConsentDetails['ConsentNo'].str.strip().str.upper()
 
-# Remove consents issued after FY28/19
-ConsentInfo = ConsentDetails[ConsentDetails['fmDate'] < '2019-07-01']
 
-# Create list of consents active in this financial year
+
+# Create list of consents 
 ConsentMaster = list(set(ConsentDetails['ConsentNo'].values.tolist()))
 
-# Create dataframe of consents active in this financial year
+# Create dataframe of consents 
 ConsentBase = ConsentDetails[['ConsentNo']]
 ConsentBase = ConsentBase.drop_duplicates()
 
@@ -599,79 +587,79 @@ print('\n\nAdaptiveManagementHistory Table ',
       AdaptiveManagementHistory.shape,'\n',
       AdaptiveManagementHistory.nunique(), '\n\n')
 
-##############################################################################
-### Create Water User Groups (SMG) Info
-
-# Import Data
-SMGCol = [
-        'B1_ALT_ID',
-        'HolderAddressFullName',
-        'MonOfficer'
-        ]
-SMGColNames = {
-        'B1_ALT_ID' : 'WUGNo',
-        'MonOfficer' : 'WUGMonOfficer',
-        'HolderAddressFullName' :'WUGName'
-        }
-SMGImportFilter = {
-       'StatusType' : ['OPEN']
-        }
-SMGServer = 'SQL2012Prod03'
-SMGDatabase = 'DataWarehouse'
-SMGTable = 'F_ACC_SelfManagementGroup'
-
-SMG = pdsql.mssql.rd_sql(
-                   server = SMGServer,
-                   database = SMGDatabase, 
-                   table = SMGTable,
-                   col_names = SMGCol,
-                   where_in = SMGImportFilter
-                   )
-# Format data
-SMG = SMG.drop_duplicates()
-SMG.rename(columns=SMGColNames, inplace=True)
-SMG['WUGNo'] = SMG['WUGNo'] .str.strip().str.upper()
-
-# Create list of water user groups
-SMGMaster = SMG['WUGNo'].values.tolist()
-
-# Import information on WUG members
-RelCol = [
-        'ParentRecordNo',
-        'ChildRecordNo'
-        ]
-RelColNames = {
-        'ParentRecordNo' : 'WUGNo',
-        'ChildRecordNo' : 'ConsentNo'
-        }
-RelImportFilter = {
-        'ParentRecordNo' : SMGMaster
-        }
-RelServer = 'SQL2012Prod03'
-RelDatabase = 'DataWarehouse'
-RelTable = 'D_ACC_Relationships'
-
-Rel = pdsql.mssql.rd_sql(
-                   server = RelServer,
-                   database = RelDatabase, 
-                   table = RelTable,
-                   col_names = RelCol,
-                   where_in = RelImportFilter
-                   )
-# Format data
-Rel = Rel.drop_duplicates()
-Rel.rename(columns=RelColNames, inplace=True)
-Rel['WUGNo'] = Rel['WUGNo'] .str.strip().str.upper()
-Rel['ConsentNo'] = Rel['ConsentNo'] .str.strip().str.upper()
-
-# Add WUG info to member info
-WUG = pd.merge(SMG, Rel, on = 'WUGNo', how = 'inner')
-
-# Print overview of table
-print('SMGMaster ', len(SMGMaster),
-      '\n\nWUG Table ',
-      WUG.shape,'\n',
-      WUG.nunique(), '\n\n')
+###############################################################################
+#### Create Water User Groups (SMG) Info
+#
+## Import Data
+#SMGCol = [
+#        'B1_ALT_ID',
+#        'HolderAddressFullName',
+#        'MonOfficer'
+#        ]
+#SMGColNames = {
+#        'B1_ALT_ID' : 'WUGNo',
+#        'MonOfficer' : 'WUGMonOfficer',
+#        'HolderAddressFullName' :'WUGName'
+#        }
+#SMGImportFilter = {
+#       'StatusType' : ['OPEN']
+#        }
+#SMGServer = 'SQL2012Prod03'
+#SMGDatabase = 'DataWarehouse'
+#SMGTable = 'F_ACC_SelfManagementGroup'
+#
+#SMG = pdsql.mssql.rd_sql(
+#                   server = SMGServer,
+#                   database = SMGDatabase, 
+#                   table = SMGTable,
+#                   col_names = SMGCol,
+#                   where_in = SMGImportFilter
+#                   )
+## Format data
+#SMG = SMG.drop_duplicates()
+#SMG.rename(columns=SMGColNames, inplace=True)
+#SMG['WUGNo'] = SMG['WUGNo'] .str.strip().str.upper()
+#
+## Create list of water user groups
+#SMGMaster = SMG['WUGNo'].values.tolist()
+#
+## Import information on WUG members
+#RelCol = [
+#        'ParentRecordNo',
+#        'ChildRecordNo'
+#        ]
+#RelColNames = {
+#        'ParentRecordNo' : 'WUGNo',
+#        'ChildRecordNo' : 'ConsentNo'
+#        }
+#RelImportFilter = {
+#        'ParentRecordNo' : SMGMaster
+#        }
+#RelServer = 'SQL2012Prod03'
+#RelDatabase = 'DataWarehouse'
+#RelTable = 'D_ACC_Relationships'
+#
+#Rel = pdsql.mssql.rd_sql(
+#                   server = RelServer,
+#                   database = RelDatabase, 
+#                   table = RelTable,
+#                   col_names = RelCol,
+#                   where_in = RelImportFilter
+#                   )
+## Format data
+#Rel = Rel.drop_duplicates()
+#Rel.rename(columns=RelColNames, inplace=True)
+#Rel['WUGNo'] = Rel['WUGNo'] .str.strip().str.upper()
+#Rel['ConsentNo'] = Rel['ConsentNo'] .str.strip().str.upper()
+#
+## Add WUG info to member info
+#WUG = pd.merge(SMG, Rel, on = 'WUGNo', how = 'inner')
+#
+## Print overview of table
+#print('SMGMaster ', len(SMGMaster),
+#      '\n\nWUG Table ',
+#      WUG.shape,'\n',
+#      WUG.nunique(), '\n\n')
 
 ##############################################################################
 ### Calculate Model Complexities
@@ -1190,26 +1178,26 @@ print('\nNonCompliance Table ',
 ### Import information from teams not stored in datawarehouse
 ##############################################################################
 
-### Import Campaign Participants
-# Import data from campaigns team
-CampaignConsent = pd.read_csv( r"\\fs02\\ManagedShares\\Data\\Implementation Support\\Python Scripts\\scripts\\Import\\CampaignConsents.csv")
-CampaignWAP = pd.read_csv( r"\\fs02\\ManagedShares\\Data\\Implementation Support\\Python Scripts\\scripts\\Import\\CampaignWAPs.csv")
+#### Import Campaign Participants
+## Import data from campaigns team
+#CampaignConsent = pd.read_csv( r"\\fs02\\ManagedShares\\Data\\Implementation Support\\Python Scripts\\scripts\\Import\\CampaignConsents.csv")
+#CampaignWAP = pd.read_csv( r"\\fs02\\ManagedShares\\Data\\Implementation Support\\Python Scripts\\scripts\\Import\\CampaignWAPs.csv")
+#
+## Remove duplicates
+#CampaignConsent = CampaignConsent.drop_duplicates(subset =
+#        ['ConsentNo',],keep= 'first')
+#CampaignWAP = CampaignWAP.drop_duplicates(subset =
+#        ['WAP',],keep= 'first')
+#
+## Print overview of tables
+#print('CampaignConsent ', CampaignConsent.shape, '\n',
+#      CampaignConsent.nunique(), '\n\n')
+#print('CampaignWAP ', CampaignWAP.shape, '\n',
+#      CampaignWAP.nunique(), '\n\n')
 
-# Remove duplicates
-CampaignConsent = CampaignConsent.drop_duplicates(subset =
-        ['ConsentNo',],keep= 'first')
-CampaignWAP = CampaignWAP.drop_duplicates(subset =
-        ['WAP',],keep= 'first')
-
-# Print overview of tables
-print('CampaignConsent ', CampaignConsent.shape, '\n',
-      CampaignConsent.nunique(), '\n\n')
-print('CampaignWAP ', CampaignWAP.shape, '\n',
-      CampaignWAP.nunique(), '\n\n')
-
-### Import Midseason Inspections
-# Import data from inspections team
-MidseasonInspections = pd.read_csv( r"\\fs02\\ManagedShares\\Data\\Implementation Support\\Python Scripts\\scripts\\Import\\MidseasonInspections.csv")
+#### Import Midseason Inspections
+## Import data from inspections team
+#MidseasonInspections = pd.read_csv( r"\\fs02\\ManagedShares\\Data\\Implementation Support\\Python Scripts\\scripts\\Import\\MidseasonInspections.csv")
 
 ##############################################################################
 ### Import Summary Table
@@ -1377,11 +1365,11 @@ AllLimit = pd.merge(AllLimit, FEV, on = ['ConsentNo','Activity'], how = 'left')
 Consent = pd.merge(ConsentBase, ConsentDetails, on = 'ConsentNo', how = 'left')
 Consent = pd.merge(Consent, Location, on = 'ConsentNo', how = 'left')
 Consent = pd.merge(Consent, AdaptiveManagement, on = 'ConsentNo', how = 'left')
-Consent = pd.merge(Consent, WUG, on = 'ConsentNo', how = 'left')
+#Consent = pd.merge(Consent, WUG, on = 'ConsentNo', how = 'left')
 Consent = pd.merge(Consent, NonCompliance, on = 'ConsentNo' , how = 'left' )
 Consent = pd.merge(Consent, SharedConsent, on = 'ConsentNo' , how = 'left' )
-Consent = pd.merge(Consent, CampaignConsent, on = 'ConsentNo' , how = 'left' )
-Consent = pd.merge(Consent, MidseasonInspections, on = 'ConsentNo' , how = 'left' )
+#Consent = pd.merge(Consent, CampaignConsent, on = 'ConsentNo' , how = 'left' )
+#Consent = pd.merge(Consent, MidseasonInspections, on = 'ConsentNo' , how = 'left' )
 
 ### Build WAP level information
 WAP = pd.merge(WAPBase, WellDetails, on = 'WAP', how = 'left')
