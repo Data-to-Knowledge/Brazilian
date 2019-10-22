@@ -52,12 +52,12 @@ WaiverLimit = '2000-07-01'
 ConsentDetailsCol = [
         'B1_ALT_ID',
         'B1_APPL_STATUS',
-        'fmDate',
-        'toDate',
-        'HolderAddressFullName',
-        'HolderEcanID',
-        'ChildAuthorisations',
-        'ParentAuthorisations'
+#        'fmDate',
+#        'toDate',
+#        'HolderAddressFullName',
+#        'HolderEcanID',
+#        'ChildAuthorisations',
+#        'ParentAuthorisations'
         ]
 ConsentDetailsColNames = {
         'B1_ALT_ID' : 'ConsentNo',
@@ -131,17 +131,17 @@ ConsentBase = ConsentBase.drop_duplicates()
 
 
 
-# Calculate info on consents parent tree
-conditions = [
-        ConsentDetails.ConsentStatus == 'Terminated - Replaced',
-        ((ConsentDetails.ConsentStatus == 'Issued - Active') |
-                (ConsentDetails.ConsentStatus == 'Issued - s124 Continuance')) &
-            (ConsentDetails.fmDate > TermDate),
-               ]
-choices = ['Child' , 'Parent']
-ConsentDetails['ParentorChild'] = np.select(conditions, choices, default = np.nan)
-choices2 = [ConsentDetails['ChildAuthorisations'] ,ConsentDetails['ParentAuthorisations']]
-ConsentDetails['ParentChildConsent'] = np.select(conditions, choices2, default = ' ')
+## Calculate info on consents parent tree
+#conditions = [
+#        ConsentDetails.ConsentStatus == 'Terminated - Replaced',
+#        ((ConsentDetails.ConsentStatus == 'Issued - Active') |
+#                (ConsentDetails.ConsentStatus == 'Issued - s124 Continuance')) &
+#            (ConsentDetails.fmDate > TermDate),
+#               ]
+#choices = ['Child' , 'Parent']
+#ConsentDetails['ParentorChild'] = np.select(conditions, choices, default = np.nan)
+#choices2 = [ConsentDetails['ChildAuthorisations'] ,ConsentDetails['ParentAuthorisations']]
+#ConsentDetails['ParentChildConsent'] = np.select(conditions, choices2, default = ' ')
 
 # Print overview of table
 print('ConsentMaster ', len(ConsentMaster),
@@ -160,23 +160,23 @@ WAPLimitCol = [
         'RecordNumber',
         'Activity',
         'MaxRateForWAP_ls',
-        'AllocationRate_ls',
+#        'AllocationRate_ls',
         'FromMonth',
         'ToMonth',
-        'DailyVol_m3',
-        'DailyIsCondition',
-        'WeeklyVol_m3',
-        'WeeklyIsCondition',
-        '30DayVol_m3',
-        '30DayIsCondition',
-        '150DayVol_m3',
-        '150DayIsCondition',
-        'CustomVol_m3',
-        'CustomPeriodDays'      
+#        'DailyVol_m3',
+#        'DailyIsCondition',
+#        'WeeklyVol_m3',
+#        'WeeklyIsCondition',
+#        '30DayVol_m3',
+#        '30DayIsCondition',
+#        '150DayVol_m3',
+#        '150DayIsCondition',
+#        'CustomVol_m3',
+#        'CustomPeriodDays'      
         ]
 WAPLimitColNames = {
         'RecordNumber' : 'ConsentNo',
-        'AllocationRate_ls' : 'MaxRateProRata',
+#        'AllocationRate_ls' : 'MaxRateProRata',
         'MaxRateForWAP_ls' : 'WAPRate',
         'FromMonth' : 'WAPFromMonth',
         'ToMonth' : 'WAPToMonth'
@@ -222,7 +222,7 @@ WAPLink = WAPLink.drop_duplicates()
 Consent_WAP = WAPLimit[['ConsentNo','WAP',]]
 Consent_WAP = Consent_WAP.drop_duplicates()
 
-WAPRate = WAPLimit[['ConsentNo','WAP','WAPRate','MaxRateProRata']]
+WAPRate = WAPLimit[['ConsentNo','WAP','WAPRate']]
 WAPRate = WAPRate.drop_duplicates()
 
 # Print overview of table
@@ -241,77 +241,77 @@ print('WAPMaster ',len(WAPMaster), '\n',
       WAPRate.nunique(), '\n\n'     
             
       )
-
-##############################################################################
-### Reshape Data to ease access to NDay volume allocation limits
-
-# Duplicate each record 5 times
-temp = WAPLimit.reindex(WAPLimit.index.repeat(repeats = 5))
-
-# Add a counter
-temp['TempRow']=temp.groupby(level=0).cumcount()+1
-
-# Move NDay volume info to new columns
-conditions = [
-    ((temp.TempRow == 1) & (temp['DailyIsCondition'].str.upper() == 'YES')),
-    ((temp.TempRow == 2) & (temp['WeeklyIsCondition'].str.upper() == 'YES')),
-    ((temp.TempRow == 3) & (temp['30DayIsCondition'].str.upper() == 'YES')),
-    ((temp.TempRow == 4) & (temp['150DayIsCondition'].str.upper() == 'YES')),
-    ((temp.TempRow == 5) & (temp['CustomVol_m3'].notnull()))
-               ]
-choicesNVol = [
-               temp['DailyVol_m3'],
-               temp['WeeklyVol_m3'],
-               temp['30DayVol_m3'],
-               temp['150DayVol_m3'],
-               temp['CustomVol_m3']
-               ]
-choicesNDay = [1,7,30,150,temp['CustomPeriodDays']]
-
-temp['WAPNVol'] = np.select(conditions, choicesNVol, default = np.nan)
-temp['WAPNDay'] = np.select(conditions, choicesNDay, default = np.nan)
-
-# Remove rows w/o Nday volume
-temp = temp[pd.notnull(temp['WAPNDay'])]
-
-# Reinsert WAP allocation records without NDay volume allocation
-temp = pd.merge(temp, WAPLink, on = ['ConsentNo',
-                                     'Activity',
-                                     'WAP',
-                                     'WAPToMonth',
-                                     'WAPFromMonth',
-                                     'WAPRate'
-                                     ], how = 'outer')
-
-# Create marker for WAP level allocation rules
-temp['WAPLimit'] = 1
-
-# Drop unused columns
-temp = temp.drop(['DailyVol_m3', 
-            'DailyIsCondition', 
-            'WeeklyVol_m3',
-            'WeeklyIsCondition',
-            '30DayVol_m3',
-            '30DayIsCondition',
-            '150DayVol_m3',
-            '150DayIsCondition',
-            'CustomVol_m3',
-            'CustomPeriodDays',
-            'TempRow'
-            ], axis=1)
-
-# Overwrite old WAP allocation limit table
-WAPLimit = temp.drop_duplicates(subset =
-        ['ConsentNo',
-         'WAP',
-         'Activity',
-         'WAPFromMonth',
-         'WAPToMonth'],keep= 'first')
-
-# Print overview of table
-print('\nWAPLimit Table',
-      WAPLimit.shape,'\n',
-      WAPLimit.nunique(), '\n\n')
+#
+###############################################################################
+#### Reshape Data to ease access to NDay volume allocation limits
+#
+## Duplicate each record 5 times
+#temp = WAPLimit.reindex(WAPLimit.index.repeat(repeats = 5))
+#
+## Add a counter
+#temp['TempRow']=temp.groupby(level=0).cumcount()+1
+#
+## Move NDay volume info to new columns
+#conditions = [
+#    ((temp.TempRow == 1) & (temp['DailyIsCondition'].str.upper() == 'YES')),
+#    ((temp.TempRow == 2) & (temp['WeeklyIsCondition'].str.upper() == 'YES')),
+#    ((temp.TempRow == 3) & (temp['30DayIsCondition'].str.upper() == 'YES')),
+#    ((temp.TempRow == 4) & (temp['150DayIsCondition'].str.upper() == 'YES')),
+#    ((temp.TempRow == 5) & (temp['CustomVol_m3'].notnull()))
+#               ]
+#choicesNVol = [
+#               temp['DailyVol_m3'],
+#               temp['WeeklyVol_m3'],
+#               temp['30DayVol_m3'],
+#               temp['150DayVol_m3'],
+#               temp['CustomVol_m3']
+#               ]
+#choicesNDay = [1,7,30,150,temp['CustomPeriodDays']]
+#
+#temp['WAPNVol'] = np.select(conditions, choicesNVol, default = np.nan)
+#temp['WAPNDay'] = np.select(conditions, choicesNDay, default = np.nan)
+#
+## Remove rows w/o Nday volume
+#temp = temp[pd.notnull(temp['WAPNDay'])]
+#
+## Reinsert WAP allocation records without NDay volume allocation
+#temp = pd.merge(temp, WAPLink, on = ['ConsentNo',
+#                                     'Activity',
+#                                     'WAP',
+#                                     'WAPToMonth',
+#                                     'WAPFromMonth',
+#                                     'WAPRate'
+#                                     ], how = 'outer')
+#
+## Create marker for WAP level allocation rules
+#temp['WAPLimit'] = 1
+#
+## Drop unused columns
+#temp = temp.drop(['DailyVol_m3', 
+#            'DailyIsCondition', 
+#            'WeeklyVol_m3',
+#            'WeeklyIsCondition',
+#            '30DayVol_m3',
+#            '30DayIsCondition',
+#            '150DayVol_m3',
+#            '150DayIsCondition',
+#            'CustomVol_m3',
+#            'CustomPeriodDays',
+#            'TempRow'
+#            ], axis=1)
+#
+## Overwrite old WAP allocation limit table
+#WAPLimit = temp.drop_duplicates(subset =
+#        ['ConsentNo',
+#         'WAP',
+#         'Activity',
+#         'WAPFromMonth',
+#         'WAPToMonth'],keep= 'first')
+#
+## Print overview of table
+#print('\nWAPLimit Table',
+#      WAPLimit.shape,'\n',
+#      WAPLimit.nunique(), '\n\n')
 
 
 ##############################################################################
@@ -673,18 +673,18 @@ SharedWAP = temp.groupby(
   ).agg(
           {
             'WAPRate' : 'max',
-            'MaxRateProRata': 'sum',
+#            'MaxRateProRata': 'sum',
             'ConsentNo' : pd.Series.nunique,
-            'HolderEcanID' : pd.Series.nunique,
+#            'HolderEcanID' : pd.Series.nunique,
           }
         )
 # Format data
 SharedWAP.rename(columns = 
          {
           'WAPRate' :'MaxRateSharedWAP',
-          'MaxRateProRata': 'CombinedWAPProRataRate',
+#          'MaxRateProRata': 'CombinedWAPProRataRate',
           'ConsentNo' : 'ConsentsOnWAP',
-          'HolderEcanID' : 'ECsOnWAP'
+#          'HolderEcanID' : 'ECsOnWAP'
                  },inplace=True)
 
 # Print overview of table
@@ -698,14 +698,14 @@ SharedConsent = temp.groupby(
         ).agg(
                 {
                 'WAP' : pd.Series.nunique,
-                'MaxRateProRata': 'sum'
+#                'MaxRateProRata': 'sum'
                 }
             )
 # Format data
 SharedConsent.rename(columns = 
          {
           'WAP' :'WAPsOnConsent',
-          'MaxRateProRata': 'CombinedConProRataRate'          
+#          'MaxRateProRata': 'CombinedConProRataRate'          
          },inplace=True)
 
 # Print overview of table
